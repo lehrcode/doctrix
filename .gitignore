@@ -1,0 +1,8 @@
+*.exe
+*.exe~
+*.dll
+*.so
+*.test
+
+.idea/
+.vscode/
