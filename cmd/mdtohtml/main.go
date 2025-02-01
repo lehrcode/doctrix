@@ -15,16 +15,18 @@ import (
 	"os"
 )
 
-type Doc struct {
-	Title      string
-	Stylesheet string
-	Body       template.HTML
+type Document struct {
+	Title         string
+	StylesheetURI string
+	Language      string
+	Author        string
+	Body          template.HTML
 }
 
 var (
-	stylesheetFilename string
-	outputFilename     string
-	documentTitle      string
+	outputFilename string
+	document       Document
+
 	//go:embed template.gohtml
 	outputTemplateSource string
 	outputTemplate       *template.Template
@@ -32,8 +34,10 @@ var (
 
 func main() {
 	flag.StringVar(&outputFilename, "o", "", "output filename")
-	flag.StringVar(&stylesheetFilename, "s", "", "include link tag to stylesheet")
-	flag.StringVar(&documentTitle, "t", "", "document title")
+	flag.StringVar(&document.StylesheetURI, "s", "", "include link tag to stylesheet uri")
+	flag.StringVar(&document.Title, "t", "", "document title")
+	flag.StringVar(&document.Author, "a", "", "document author")
+	flag.StringVar(&document.Language, "l", "", "document language")
 
 	flag.Parse()
 
@@ -67,7 +71,8 @@ func main() {
 	}
 
 	var finalHtml bytes.Buffer
-	if err := outputTemplate.Execute(&finalHtml, Doc{documentTitle, stylesheetFilename, template.HTML(convertedHtml.String())}); err != nil {
+	document.Body = template.HTML(convertedHtml.String())
+	if err := outputTemplate.Execute(&finalHtml, document); err != nil {
 		log.Fatal(err)
 	}
 	if outputFilename != "" {
