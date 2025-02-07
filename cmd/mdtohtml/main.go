@@ -4,7 +4,6 @@ import (
 	"bytes"
 	_ "embed"
 	"flag"
-	"fmt"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
@@ -12,15 +11,16 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"html/template"
 	"log"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type Document struct {
-	Title         string
-	StylesheetURI string
-	Language      string
-	Author        string
-	Body          template.HTML
+	Title  string
+	Values url.Values
+	Body   template.HTML
 }
 
 var (
@@ -28,16 +28,17 @@ var (
 	document       Document
 
 	//go:embed template.gohtml
-	outputTemplateSource string
-	outputTemplate       *template.Template
+	outputTemplateSource   string
+	outputTemplateFilename string
+	outputTemplate         *template.Template
 )
 
 func main() {
+	var valuesString string
+	flag.StringVar(&valuesString, "e", "lang=en", "extra values")
 	flag.StringVar(&outputFilename, "o", "", "output filename")
-	flag.StringVar(&document.StylesheetURI, "s", "", "include link tag to stylesheet uri")
 	flag.StringVar(&document.Title, "t", "", "document title")
-	flag.StringVar(&document.Author, "a", "", "document author")
-	flag.StringVar(&document.Language, "l", "", "document language")
+	flag.StringVar(&outputTemplateFilename, "m", "", "html template")
 
 	flag.Parse()
 
@@ -45,7 +46,23 @@ func main() {
 		log.Fatal("missing markdown file")
 	}
 
-	outputTemplate = template.Must(template.New("template.gohtml").Parse(outputTemplateSource))
+	if v, err := url.ParseQuery(valuesString); err != nil {
+		log.Fatal(err)
+	} else {
+		document.Values = v
+		log.Printf("Extra values: %#v\n", document.Values)
+	}
+
+	if outputTemplateFilename != "" {
+		log.Printf("Output template filename: %s\n", outputTemplateFilename)
+		if t, err := template.ParseFiles(outputTemplateFilename); err != nil {
+			log.Fatal(err)
+		} else {
+			outputTemplate = t
+		}
+	} else {
+		outputTemplate = template.Must(template.New("template.gohtml").Parse(outputTemplateSource))
+	}
 
 	var md = goldmark.New(
 		goldmark.WithExtensions(
@@ -75,11 +92,11 @@ func main() {
 	if err := outputTemplate.Execute(&finalHtml, document); err != nil {
 		log.Fatal(err)
 	}
-	if outputFilename != "" {
-		if err := os.WriteFile(outputFilename, finalHtml.Bytes(), 0644); err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		fmt.Println(finalHtml.String())
+	if outputFilename == "" {
+		outputFilename = strings.TrimSuffix(filepath.Base(flag.Arg(0)), filepath.Ext(flag.Arg(0))) + ".html"
+	}
+
+	if err := os.WriteFile(outputFilename, finalHtml.Bytes(), 0644); err != nil {
+		log.Fatal(err)
 	}
 }
