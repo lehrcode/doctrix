@@ -1,6 +1,6 @@
-module github.com/lehrcode/doctrix
+module github.com/lehrcode/mdtohtml
 
-go 1.23
+go 1.24
 
 require (
 	github.com/alecthomas/chroma/v2 v2.15.0
@@ -8,4 +8,4 @@ require (
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 )
 
-require github.com/dlclark/regexp2 v1.11.4 // indirect
+require github.com/dlclark/regexp2 v1.11.5 // indirect
